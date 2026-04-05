@@ -17,7 +17,23 @@ const app = express();
 // ── CORS ──
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+    origin: function (origin, callback) {
+      const allowed = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://finance-backend-4-chbo.onrender.com",
+      ];
+      // Allow Vercel URLs aur no-origin requests (Postman etc)
+      if (
+        !origin ||
+        allowed.includes(origin) ||
+        origin.endsWith(".vercel.app")
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   }),
@@ -56,14 +72,7 @@ const limiter = rateLimit({
 app.use("/api", limiter);
 
 // Stricter limit for auth routes
-// const authLimiter = rateLimit({
-//   windowMs: 15 * 60 * 1000,
-//   max: 20,
-//   message: {
-//     success: false,
-//     message: "Too many login attempts. Please try again after 15 minutes.",
-//   },
-// });
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: process.env.NODE_ENV === "development" ? 500 : 20,
